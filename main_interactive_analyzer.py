@@ -14,24 +14,27 @@ matplotlib.use('TkAgg')
 def main():
     """Main function to run the application."""
     try:
-        # 1. Load and process all sensor data
-        sensor_data = SensorData(RED_FILE, GREEN_FILE, BLUE_FILE)
+        # 1. Load and process all sensor data, passing the experiment timeline
+        sensor_data = SensorData(
+            RED_FILE,
+            GREEN_FILE,
+            BLUE_FILE,
+            exposure_intervals=EXPOSURE_INTERVALS
+        )
 
         # 2. Select which signal type to analyze
         signal_type_to_analyze = 'summary'
 
-        # Get the full dataset for the chosen signal type (list of 7 arrays)
         if signal_type_to_analyze == 'summary':
             all_rows_data = sensor_data.summary_data
         elif signal_type_to_analyze == 'green':
             all_rows_data = sensor_data.green_data
-        # We can add more cases for 'red', 'blue' if needed
         else:
             raise ValueError(f"Unknown signal type: {signal_type_to_analyze}")
 
         signal_name = {'summary': 'Summary Luminance', 'green': 'G-Level'}.get(signal_type_to_analyze)
 
-        # 3. Launch the interactive multi-row analyzer, passing ALL row data.
+        # 3. Launch the interactive multi-row analyzer
         analyzer = InteractiveMultiRowAnalyzer(
             time_vector=sensor_data.time_vector,
             all_sensor_data_rows=all_rows_data,

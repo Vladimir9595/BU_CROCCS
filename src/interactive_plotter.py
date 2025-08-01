@@ -22,16 +22,13 @@ class InteractiveMultiRowAnalyzer:
         self.active_row_signals = self.all_signals[self.selected_row_idx]
         self.analysis_elements = []
 
-        # Create a figure with a GridSpec for a dedicated legend area
         self.fig = plt.figure(figsize=(18, 8))
         self.fig.canvas.manager.set_window_title('Interactive Multi-Row Analyzer')
-        # Create a grid: 1 row, 2 columns. Plot is 5x wider than the legend area.
         gs = self.fig.add_gridspec(1, 2, width_ratios=[5, 1])
         self.ax = self.fig.add_subplot(gs[0, 0])
         self.ax_legend = self.fig.add_subplot(gs[0, 1])
         self.ax_legend.axis('off')
 
-        # Adjust subplot spacing to make room for widgets on the left
         plt.subplots_adjust(left=0.25)
 
         self._create_widgets()
@@ -59,9 +56,7 @@ class InteractiveMultiRowAnalyzer:
                          alpha=0.4,
                          zorder=1)
 
-        # Handle legend placement
         handles, labels = self.ax.get_legend_handles_labels()
-        # Place the legend in its dedicated axes
         self.ax_legend.legend(handles, labels, loc='center left', fontsize='large')
 
         for i in range(0, len(self.intervals), 2):
@@ -127,9 +122,18 @@ class InteractiveMultiRowAnalyzer:
         start_idx = np.searchsorted(self.time, start_time, side='left')
         end_idx = np.searchsorted(self.time, end_time, side='left')
 
-        if end_idx >= len(self.time):
-            print("Selected interval extends beyond data. Analysis truncated.")
-            end_idx = len(self.time) - 1
+        # Get the last valid index for the array.
+        last_valid_index = len(self.time) - 1
+
+        # Ensure the start index is not past the end of the data.
+        if start_idx > last_valid_index:
+            print("Start of interval is beyond the available data. Aborting analysis.")
+            return # Exit the function early
+
+        # If the calculated end index is out of bounds, clamp it to the last valid index.
+        if end_idx > last_valid_index:
+            print("Selected interval extends beyond data. Analysis truncated to the last data point.")
+            end_idx = last_valid_index
 
         signal_trace = self.active_row_signals[:, self.selected_sensor_idx]
         color = plt.get_cmap('tab10').colors[self.selected_sensor_idx]
