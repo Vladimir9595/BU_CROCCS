@@ -22,8 +22,16 @@ class InteractiveMultiRowAnalyzer:
         self.active_row_signals = self.all_signals[self.selected_row_idx]
         self.analysis_elements = []
 
-        self.fig, self.ax = plt.subplots(figsize=(16, 8))
+        # Create a figure with a GridSpec for a dedicated legend area
+        self.fig = plt.figure(figsize=(18, 8))
         self.fig.canvas.manager.set_window_title('Interactive Multi-Row Analyzer')
+        # Create a grid: 1 row, 2 columns. Plot is 5x wider than the legend area.
+        gs = self.fig.add_gridspec(1, 2, width_ratios=[5, 1])
+        self.ax = self.fig.add_subplot(gs[0, 0])
+        self.ax_legend = self.fig.add_subplot(gs[0, 1])
+        self.ax_legend.axis('off')
+
+        # Adjust subplot spacing to make room for widgets on the left
         plt.subplots_adjust(left=0.25)
 
         self._create_widgets()
@@ -37,21 +45,24 @@ class InteractiveMultiRowAnalyzer:
         """Clears and redraws the entire plot for the currently selected row."""
         self._clear_previous_analysis()
         self.ax.clear()
+        self.ax_legend.clear()
+        self.ax_legend.axis('off')
 
-        # Plot guide lines with distinct, faint colors and add a legend
         colors = plt.get_cmap('tab10').colors
         styles = ['-', '--', ':', '-.']
 
         for i in range(self.active_row_signals.shape[1]):
             self.ax.plot(self.time, self.active_row_signals[:, i],
-                         label=f'A{i+1}',  # Add label for the legend
+                         label=f'A{i+1}',
                          color=colors[i % len(colors)],
                          linestyle=styles[i % len(styles)],
                          alpha=0.4,
                          zorder=1)
 
-        # Add the legend for the guide lines
-        self.ax.legend(loc='upper right')
+        # Handle legend placement
+        handles, labels = self.ax.get_legend_handles_labels()
+        # Place the legend in its dedicated axes
+        self.ax_legend.legend(handles, labels, loc='center left', fontsize='large')
 
         for i in range(0, len(self.intervals), 2):
             color = 'pink' if i < 10 else 'lightblue'
