@@ -13,23 +13,21 @@ class InteractiveMultiRowAnalyzer:
     """
     def __init__(self, time_vector, all_sensor_data_rows, exposure_intervals, signal_name="Signal"):
         self.time = time_vector
-        self.all_signals = all_sensor_data_rows  # Store all 7 rows of data
+        self.all_signals = all_sensor_data_rows
         self.intervals = exposure_intervals
         self.signal_name = signal_name
 
-        # State management
         self.selected_row_idx = 0
         self.selected_sensor_idx = 0
-        self.active_row_signals = self.all_signals[self.selected_row_idx] # Start with C1 data
+        self.active_row_signals = self.all_signals[self.selected_row_idx]
         self.analysis_elements = []
 
-        # Setup the plot
         self.fig, self.ax = plt.subplots(figsize=(16, 8))
         self.fig.canvas.manager.set_window_title('Interactive Multi-Row Analyzer')
         plt.subplots_adjust(left=0.25)
 
         self._create_widgets()
-        self._redraw_plot() # Initial plot drawing
+        self._redraw_plot()
         self.fig.canvas.mpl_connect('button_press_event', self._on_click)
 
         print("\n--- Interactive Multi-Row Analyzer Ready ---")
@@ -40,11 +38,21 @@ class InteractiveMultiRowAnalyzer:
         self._clear_previous_analysis()
         self.ax.clear()
 
-        # Plot all sensor signals for the ACTIVE ROW as a faint gray guide
-        for i in range(self.active_row_signals.shape[1]):
-            self.ax.plot(self.time, self.active_row_signals[:, i], color='gray', alpha=0.3, zorder=1)
+        # Plot guide lines with distinct, faint colors and add a legend
+        colors = plt.get_cmap('tab10').colors
+        styles = ['-', '--', ':', '-.']
 
-        # Plot the original pink/blue exposure zones for context
+        for i in range(self.active_row_signals.shape[1]):
+            self.ax.plot(self.time, self.active_row_signals[:, i],
+                         label=f'A{i+1}',  # Add label for the legend
+                         color=colors[i % len(colors)],
+                         linestyle=styles[i % len(styles)],
+                         alpha=0.4,
+                         zorder=1)
+
+        # Add the legend for the guide lines
+        self.ax.legend(loc='upper right')
+
         for i in range(0, len(self.intervals), 2):
             color = 'pink' if i < 10 else 'lightblue'
             self.ax.axvspan(self.intervals[i], self.intervals[i+1], color=color, alpha=0.2, zorder=0)
@@ -56,7 +64,7 @@ class InteractiveMultiRowAnalyzer:
 
         plot_end_time = max(max(self.time), self.intervals[-1])
         self.ax.set_xlim(0, plot_end_time + 100)
-        self.ax.set_ylim(95, 155) # Adjust this if needed
+        self.ax.set_ylim(95, 155)
         self.fig.canvas.draw_idle()
 
     def _create_widgets(self):
@@ -76,7 +84,6 @@ class InteractiveMultiRowAnalyzer:
     def _on_row_change(self, label):
         """Handles when the user selects a new row."""
         self.selected_row_idx = int(label.split('C')[1]) - 1
-        # Update the active data to the newly selected row
         self.active_row_signals = self.all_signals[self.selected_row_idx]
         print(f"\n--- Switched to Row C{self.selected_row_idx + 1} ---")
         self._redraw_plot()
