@@ -1,20 +1,20 @@
 """
 Main script to launch the interactive VOC sensor data analyzer.
-This version allows for the analysis of user-defined 300-second intervals
+This version allows for the analysis of user-defined draggable intervals
 on any selected sensor row.
 """
 import matplotlib
 
 from src.config import RED_FILE, GREEN_FILE, BLUE_FILE, EXPOSURE_INTERVALS
 from src.data_loader import SensorData
-from src.interactive_plotter import InteractiveMultiRowAnalyzer
+from src.interactive_plotter import InteractiveDraggableAnalyzer
 
 matplotlib.use('TkAgg')
 
 def main():
     """Main function to run the application."""
     try:
-        # 1. Load and process all sensor data, passing the experiment timeline
+        # 1. Load and process all sensor data
         sensor_data = SensorData(
             RED_FILE,
             GREEN_FILE,
@@ -34,8 +34,8 @@ def main():
 
         signal_name = {'summary': 'Summary Luminance', 'green': 'G-Level'}.get(signal_type_to_analyze)
 
-        # 3. Launch the interactive multi-row analyzer
-        analyzer = InteractiveMultiRowAnalyzer(
+        # 3. Launch the interactive draggable analyzer
+        analyzer = InteractiveDraggableAnalyzer(
             time_vector=sensor_data.time_vector,
             all_sensor_data_rows=all_rows_data,
             exposure_intervals=EXPOSURE_INTERVALS,
