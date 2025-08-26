@@ -185,7 +185,7 @@ class InteractiveDraggableAnalyzer:
         """
         Extracts the full time-series data segment for all 63 sensors for each
         cycle contained within the user-defined window. Saves each segment to its
-        own CSV file in a structured directory format.
+        own CSV file in a structured directory format, sorted by concentration.
         """
         print("\n--- Starting Full Time-Series Extraction for Cycles in Window ---")
 
@@ -210,9 +210,15 @@ class InteractiveDraggableAnalyzer:
 
             if cycle_start_time >= user_start_time and cycle_end_time <= user_end_time:
                 cycle_num = cycle_idx + 1
-                print(f"  -> Processing Cycle {cycle_num}...")
 
-                cycle_dir = os.path.join(output_base_dir, f"Cycle_{cycle_num:02d}")
+                # Determine concentration and create subfolder
+                concentration = 10 if cycle_idx < 5 else 30
+                concentration_dir = os.path.join(output_base_dir, f"concentration_{concentration}")
+                os.makedirs(concentration_dir, exist_ok=True)
+
+                print(f"  -> Processing Cycle {cycle_num} (Concentration: {concentration}%)...")
+
+                cycle_dir = os.path.join(concentration_dir, f"Cycle_{cycle_num:02d}")
                 os.makedirs(cycle_dir, exist_ok=True)
 
                 start_idx = np.searchsorted(self.time, cycle_start_time)
