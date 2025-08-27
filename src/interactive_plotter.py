@@ -15,35 +15,32 @@ class InteractiveDraggableAnalyzer:
     and can also extract and save the ΔI from all predefined cycles
     that fall within the selected window.
     """
-    def __init__(self, time_vector, all_sensor_data_rows, exposure_intervals, signal_name="Signal"):
+    def __init__(self, time_vector, all_sensor_data_rows, dataset_config, signal_name="Signal"):
         self.time = time_vector
         self.all_signals = all_sensor_data_rows
-        self.intervals = exposure_intervals
+        self.config = dataset_config # Store the specific dataset config
+        self.intervals = self.config['intervals']
+        self.concentrations = self.config['concentrations']
         self.signal_name = signal_name
 
-        self.selected_row_idx = 0
-        self.selected_sensor_idx = 0
+        self.selected_row_idx, self.selected_sensor_idx = 0, 0
         self.active_row_signals = self.all_signals[self.selected_row_idx]
-
-        self.is_dragging = False
-        self.start_point_data = None
+        self.is_dragging, self.start_point_data = False, None
         self.analysis_elements = []
 
         self.fig = plt.figure(figsize=(18, 8))
-        self.fig.canvas.manager.set_window_title('Interactive Draggable Analyzer')
+        self.fig.canvas.manager.set_window_title(f'Interactive Analyzer - {self.config["name"]}')
         gs = self.fig.add_gridspec(1, 2, width_ratios=[5, 1])
         self.ax = self.fig.add_subplot(gs[0, 0])
         self.ax_legend = self.fig.add_subplot(gs[0, 1])
         self.ax_legend.axis('off')
 
         plt.subplots_adjust(left=0.25, bottom=0.15)
-
         self._create_widgets()
         self._redraw_plot()
         self.fig.canvas.mpl_connect('button_press_event', self._on_press)
         self.fig.canvas.mpl_connect('motion_notify_event', self._on_motion)
         self.fig.canvas.mpl_connect('button_release_event', self._on_release)
-
         print("\n--- Interactive Draggable Analyzer Ready ---")
         self._print_instructions()
 
@@ -79,15 +76,13 @@ class InteractiveDraggableAnalyzer:
         self.fig.canvas.draw_idle()
 
     def _create_widgets(self):
-        """Creates the radio buttons for row and sensor selection."""
-        # Row Selector
+        """Creates the radio buttons and the data extraction button."""
         rax_rows = self.fig.add_axes((0.05, 0.6, 0.15, 0.3))
         row_labels = [f"Row C{i+1}" for i in range(7)]
         self.radio_rows = RadioButtons(rax_rows, row_labels, active=0)
         self.radio_rows.on_clicked(self._on_row_change)
 
-        # Sensor Selector
-        rax_sensors = self.fig.add_axes((0.05, 0.15, 0.15, 0.4))
+        rax_sensors = self.fig.add_axes((0.05, 0.25, 0.15, 0.3))
         sensor_labels = [f"Sensor A{i+1}" for i in range(9)]
         self.radio_sensors = RadioButtons(rax_sensors, sensor_labels, active=0)
         self.radio_sensors.on_clicked(self._on_sensor_change)
@@ -111,7 +106,7 @@ class InteractiveDraggableAnalyzer:
         self._print_instructions()
 
     def _print_instructions(self):
-        print("Click and drag to analyze a window, or click 'Extract Cycles in Window' to save.")
+        print("Click and drag to analyze a window, then click 'Extract Cycles in Window' to save.")
 
     def _clear_previous_analysis(self):
         for element in self.analysis_elements:
@@ -183,19 +178,16 @@ class InteractiveDraggableAnalyzer:
 
     def _extract_and_save_all_data(self, event):
         """
-        Extracts the full time-series data segment for all 63 sensors for each
-        cycle contained within the user-defined window. Saves each segment to its
-        own CSV file in a structured directory format, sorted by concentration.
+        Extracts data for all cycles within the user-defined window and saves to CSV,
+        sorted by the dynamically determined concentration.
         """
         print("\n--- Starting Full Time-Series Extraction for Cycles in Window ---")
-
         if not self.start_point_data or len(self.analysis_elements) < 3:
             print("Extraction failed: Please define an analysis window by clicking and dragging first.")
             return
 
         user_start_time = self.start_point_data[0]
         user_end_time = self.analysis_elements[-1].get_xdata()[0]
-
         print(f"Filtering cycles within user-defined window: {user_start_time:.2f}s to {user_end_time:.2f}s")
 
         output_base_dir = 'extracted_data'
@@ -203,27 +195,28 @@ class InteractiveDraggableAnalyzer:
         print(f"Data will be saved in the '{output_base_dir}' directory.")
 
         extracted_files_count = 0
+        num_cycles = len(self.intervals) // 2
+        num_concentrations = len(self.concentrations)
+        num_cycles_per_conc = num_cycles // num_concentrations
 
-        for cycle_idx in range(len(self.intervals) // 2):
+        for cycle_idx in range(num_cycles):
             cycle_start_time = self.intervals[cycle_idx * 2]
             cycle_end_time = self.intervals[cycle_idx * 2 + 1]
 
             if cycle_start_time >= user_start_time and cycle_end_time <= user_end_time:
                 cycle_num = cycle_idx + 1
 
-                # Determine concentration and create subfolder
-                concentration = 10 if cycle_idx < 5 else 30
+                # Dynamic concentration logic
+                conc_index = cycle_idx // num_cycles_per_conc
+                concentration = self.concentrations[conc_index]
                 concentration_dir = os.path.join(output_base_dir, f"concentration_{concentration}")
                 os.makedirs(concentration_dir, exist_ok=True)
 
                 print(f"  -> Processing Cycle {cycle_num} (Concentration: {concentration}%)...")
-
                 cycle_dir = os.path.join(concentration_dir, f"Cycle_{cycle_num:02d}")
                 os.makedirs(cycle_dir, exist_ok=True)
 
-                start_idx = np.searchsorted(self.time, cycle_start_time)
-                end_idx = np.searchsorted(self.time, cycle_end_time)
-
+                start_idx, end_idx = np.searchsorted(self.time, [cycle_start_time, cycle_end_time])
                 if start_idx >= end_idx:
                     continue
 
@@ -235,16 +228,12 @@ class InteractiveDraggableAnalyzer:
 
                         sensor_name = f"C{row_idx+1}_A{sensor_idx+1}"
                         output_filename = os.path.join(cycle_dir, f"{sensor_name}.csv")
-
                         data_to_save = np.vstack((time_segment, signal_segment)).T
-
                         np.savetxt(output_filename, data_to_save, delimiter=',', header='time,intensity', comments='')
                         extracted_files_count += 1
 
-        if extracted_files_count > 0:
-            print(f"\nSUCCESS: Extracted and saved {extracted_files_count} individual sensor segments.")
-        else:
-            print("\nExtraction complete: No full cycles were found within your selected window.")
+        if extracted_files_count > 0: print(f"\nSUCCESS: Extracted {extracted_files_count} segments.")
+        else: print("\nExtraction complete: No full cycles found in window.")
 
     def show(self):
         """Displays the plot."""

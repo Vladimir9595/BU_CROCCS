@@ -1,24 +1,27 @@
-# src/data_loader.py
 """
 Contains the SensorData class for loading, processing, and managing sensor data.
 This version pads all data to the required experiment end time to ensure a
 complete time series visualization.
 """
 import numpy as np
+import os
 
 class SensorData:
     """A class to handle loading and processing of GMR sensor array data."""
 
-    def __init__(self, red_path, green_path, blue_path, exposure_intervals, num_rows=7):
+    def __init__(self, data_dir, exposure_intervals, num_rows=7):
         """
-        Initializes the SensorData object by loading and padding data.
+        Initializes the SensorData object by loading and padding data from a given directory.
         """
         self.num_rows = num_rows
         self.time_vector = None
-        self.red_data = None
-        self.green_data = None
-        self.blue_data = None
+        self.red_data, self.green_data, self.blue_data = None, None, None
         self.summary_data = None
+
+        # Construct file paths dynamically based on the provided directory
+        red_path = os.path.join(data_dir, 'TestRed.csv')
+        green_path = os.path.join(data_dir, 'TestGreen.csv')
+        blue_path = os.path.join(data_dir, 'TestBlue.csv')
 
         self._load_and_process(red_path, green_path, blue_path, exposure_intervals)
 
