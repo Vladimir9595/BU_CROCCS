@@ -15,10 +15,11 @@ class InteractiveDraggableAnalyzer:
     and can also extract and save data from all predefined cycles
     that fall within the selected window.
     """
-    def __init__(self, time_vector, all_sensor_data_rows, dataset_config, signal_name="Signal"):
+    def __init__(self, time_vector, all_sensor_data_rows, dataset_config, gas_name, signal_name="Signal"):
         self.time = time_vector
         self.all_signals = all_sensor_data_rows
         self.config = dataset_config
+        self.gas_name = gas_name
         self.intervals = self.config['intervals']
         self.concentrations = self.config['concentrations']
         self.signal_name = signal_name
@@ -29,7 +30,7 @@ class InteractiveDraggableAnalyzer:
         self.analysis_elements = []
 
         self.fig = plt.figure(figsize=(18, 8))
-        self.fig.canvas.manager.set_window_title(f'Interactive Analyzer - {self.config["name"]}')
+        self.fig.canvas.manager.set_window_title(f'Analyzer - Gas: {self.gas_name} | Dataset: {self.config["name"]}')
         gs = self.fig.add_gridspec(1, 2, width_ratios=[5, 1])
         self.ax = self.fig.add_subplot(gs[0, 0])
         self.ax_legend = self.fig.add_subplot(gs[0, 1])
@@ -165,7 +166,6 @@ class InteractiveDraggableAnalyzer:
         end_idx = np.searchsorted(self.time, end_time)
         if end_idx >= len(self.time): end_idx = len(self.time) - 1
 
-        # This now prints directly to the logger window
         print(f"\n--- Visual Analysis for Row C{self.selected_row_idx+1} ---")
         print(f"--- Time Window: {self.time[start_idx]:.2f}s to {self.time[end_idx]:.2f}s ---")
         for sensor_idx in range(self.active_row_signals.shape[1]):
@@ -184,6 +184,10 @@ class InteractiveDraggableAnalyzer:
         Extracts data for all cycles within the user-defined window and saves to CSV,
         sorted by the dynamically determined concentration.
         """
+        output_base_dir = os.path.join('extracted_data', self.gas_name)
+        os.makedirs(output_base_dir, exist_ok=True)
+        print(f"Data will be saved in the '{output_base_dir}' directory.")
+
         print("\n--- Starting Full Time-Series Extraction for Cycles in Window ---")
         if not self.start_point_data or len(self.analysis_elements) < 3:
             print("Extraction failed: Please define an analysis window by clicking and dragging first.")
@@ -192,10 +196,6 @@ class InteractiveDraggableAnalyzer:
         user_start_time = self.start_point_data[0]
         user_end_time = self.analysis_elements[-1].get_xdata()[0]
         print(f"Filtering cycles within user-defined window: {user_start_time:.2f}s to {user_end_time:.2f}s")
-
-        output_base_dir = 'extracted_data'
-        os.makedirs(output_base_dir, exist_ok=True)
-        print(f"Data will be saved in the '{output_base_dir}' directory.")
 
         extracted_files_count = 0
         num_cycles = len(self.intervals) // 2
