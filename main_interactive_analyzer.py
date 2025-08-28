@@ -11,6 +11,7 @@ from matplotlib.widgets import Button
 from src.config import DATASETS
 from src.data_loader import SensorData
 from src.interactive_plotter import InteractiveDraggableAnalyzer
+from src.logger import LOGGER
 
 matplotlib.use('TkAgg')
 
@@ -60,7 +61,7 @@ class DatasetLauncher:
 
             analyzer = InteractiveDraggableAnalyzer(
                 time_vector=sensor_data.time_vector,
-                all_sensor_data_rows=sensor_data.summary_data, # Defaulting to summary
+                all_sensor_data_rows=sensor_data.summary_data,
                 dataset_config=config,
                 signal_name='Summary Luminance'
             )
@@ -74,9 +75,17 @@ class DatasetLauncher:
 
 def main():
     """Main function to run the application."""
-    # Launch the dataset selector window first
-    launcher = DatasetLauncher(DATASETS)
-    launcher.show()
+    LOGGER.start()
+    try:
+        print("--- Application Started ---")
+        print("Please select a dataset to begin analysis.")
+        launcher = DatasetLauncher(DATASETS)
+        launcher.show()
+    finally:
+        # --- This block ensures cleanup happens no matter how the app closes ---
+        print("\n--- Analysis complete. Closing application. ---")
+        LOGGER.stop()
+        LOGGER.destroy()
 
 if __name__ == "__main__":
     main()
