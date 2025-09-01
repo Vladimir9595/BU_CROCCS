@@ -18,7 +18,6 @@ class SensorData:
         self.red_data, self.green_data, self.blue_data = None, None, None
         self.summary_data = None
 
-        # Construct file paths dynamically based on the provided directory
         red_path = os.path.join(data_dir, 'TestRed.csv')
         green_path = os.path.join(data_dir, 'TestGreen.csv')
         blue_path = os.path.join(data_dir, 'TestBlue.csv')
@@ -32,7 +31,8 @@ class SensorData:
         except FileNotFoundError:
             print(f"Error: {filepath} not found.")
             return None, None
-
+        if raw_data.ndim == 1: # Handle case of single-row CSV
+            raw_data = raw_data.reshape(1, -1)
         time_vector = raw_data[:, 0]
         sensor_data = raw_data[:, 1:]
         reshaped = [sensor_data[:, i::self.num_rows] for i in range(self.num_rows)]
@@ -48,25 +48,17 @@ class SensorData:
         print(f"Padding data from {current_len} to {target_len} points...")
         num_points_to_add = target_len - current_len
 
-        # Pad the sensor data by repeating the last known value
         new_data_rows = []
         for row in data_rows:
             last_values = row[-1, :]
             padding = np.tile(last_values, (num_points_to_add, 1))
             padded_row = np.vstack([row, padding])
             new_data_rows.append(padded_row)
-
         return new_data_rows
 
     def _load_and_process(self, red_path, green_path, blue_path, exposure_intervals):
         """
         Loads all RGB data, pads them to the experiment end time, and calculates summary signal.
-
-        Args:
-            red_path (str): Path to the red channel data file.
-            green_path (str): Path to the green channel data file.
-            blue_path (str): Path to the blue channel data file.
-            exposure_intervals (list): List of exposure intervals defining the experiment timeline.
         """
         print("Loading all RGB data...")
         time_r, data_r = self._load_and_reshape(red_path)
@@ -76,19 +68,32 @@ class SensorData:
         if not all(d is not None for d in [data_r, data_g, data_b]):
             raise IOError("One or more data files could not be loaded.")
 
-        # Pad to experiment end time, not just longest file
         required_end_time = exposure_intervals[-1]
 
-        # Find the longest of the actual recordings to use as our base
         all_times = [time_r, time_g, time_b]
-        longest_time_idx = np.argmax([len(t) for t in all_times])
-        base_time_vector = all_times[longest_time_idx]
+        # Filter out any None values in case a file failed to load but wasn't caught
+        valid_times = [t for t in all_times if t is not None and len(t) > 1]
+        if not valid_times:
+            raise ValueError("No valid time data could be loaded from any file.")
 
-        # Check if the longest recording already covers the experiment
+        longest_time_idx = np.argmax([len(t) for t in valid_times])
+        base_time_vector = valid_times[longest_time_idx]
+
         if base_time_vector[-1] < required_end_time:
             print(f"Extending time vector to required end time of {required_end_time}s...")
-            # Extrapolate new time points
-            avg_step = np.mean(np.diff(base_time_vector[-100:]))
+
+            # 1. Calculate time differences (steps)
+            time_diffs = np.diff(base_time_vector)
+            # 2. Filter out any non-positive steps (errors in data)
+            positive_diffs = time_diffs[time_diffs > 0]
+
+            # 3. Calculate average step from valid data, with a failsafe
+            if len(positive_diffs) > 0:
+                avg_step = np.mean(positive_diffs[-100:]) # Average of last 100 valid steps
+            else:
+                avg_step = 0.1 # Failsafe default: assume 10Hz sampling rate
+                print("Warning: Could not determine average time step from data. Using default.")
+
             num_steps_to_add = int(np.ceil((required_end_time - base_time_vector[-1]) / avg_step)) + 1
             extra_time = np.arange(1, num_steps_to_add + 1) * avg_step + base_time_vector[-1]
             self.time_vector = np.concatenate([base_time_vector, extra_time])
@@ -112,13 +117,6 @@ class SensorData:
     def get_data_for_row(self, row_idx, signal_type='summary'):
         """
         Returns the time vector and sensor data for a specific row.
-
-        Args:
-            row_idx (int): The index of the row to retrieve data for (0-based).
-            signal_type (str): The type of signal to retrieve ('summary', 'green')
-
-        Returns:
-            tuple: A tuple containing the time vector and the requested signal data for the specified row.
         """
         if signal_type == 'summary':
             return self.time_vector, self.summary_data[row_idx]

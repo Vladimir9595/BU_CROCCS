@@ -15,11 +15,12 @@ class InteractiveDraggableAnalyzer:
     and can also extract and save data from all predefined cycles
     that fall within the selected window.
     """
-    def __init__(self, time_vector, all_sensor_data_rows, dataset_config, gas_name, signal_name="Signal"):
+    def __init__(self, time_vector, all_sensor_data_rows, dataset_config, gas_name, app_controller, signal_name="Signal"):
         self.time = time_vector
         self.all_signals = all_sensor_data_rows
         self.config = dataset_config
         self.gas_name = gas_name
+        self.app_controller = app_controller
         self.intervals = self.config['intervals']
         self.concentrations = self.config['concentrations']
         self.signal_name = signal_name
@@ -78,20 +79,49 @@ class InteractiveDraggableAnalyzer:
         self.fig.canvas.draw_idle()
 
     def _create_widgets(self):
-        """Creates the radio buttons and the data extraction button."""
-        rax_rows = self.fig.add_axes([0.05, 0.6, 0.15, 0.3])
+        """Creates the radio buttons and all action buttons."""
+        # Row Selector
+        rax_rows = self.fig.add_axes((0.05, 0.6, 0.15, 0.3))
         row_labels = [f"Row C{i+1}" for i in range(7)]
         self.radio_rows = RadioButtons(rax_rows, row_labels, active=0)
         self.radio_rows.on_clicked(self._on_row_change)
 
-        rax_sensors = self.fig.add_axes([0.05, 0.25, 0.15, 0.3])
+        # Sensor Selector
+        rax_sensors = self.fig.add_axes((0.05, 0.25, 0.15, 0.3))
         sensor_labels = [f"Sensor A{i+1}" for i in range(9)]
         self.radio_sensors = RadioButtons(rax_sensors, sensor_labels, active=0)
         self.radio_sensors.on_clicked(self._on_sensor_change)
 
-        ax_extract = self.fig.add_axes([0.05, 0.1, 0.15, 0.05])
+        # Extract Button
+        ax_extract = self.fig.add_axes((0.05, 0.1, 0.15, 0.05))
         self.button_extract = Button(ax_extract, 'Extract Cycles in Window')
         self.button_extract.on_clicked(self._extract_and_save_all_data)
+
+        # Back to Concentration/Dataset Choice
+        ax_back_dataset = self.fig.add_axes((0.8, 0.9, 0.15, 0.05))
+        self.button_back_dataset = Button(ax_back_dataset, 'Back to concentration')
+        self.button_back_dataset.on_clicked(self._go_back_to_dataset_choice)
+
+        # Back to Gas Choice
+        ax_back_gas = self.fig.add_axes((0.8, 0.82, 0.15, 0.05))
+        self.button_back_gas = Button(ax_back_gas, 'Back to gas choice')
+        self.button_back_gas.on_clicked(self._go_back_to_gas_choice)
+
+    def _go_back_to_dataset_choice(self, event):
+        """Closes this window and tells the controller to show the dataset selector."""
+        print("\nNavigating back to dataset selection...")
+        plt.close(self.fig)
+        self.app_controller.launch_dataset_selector(self.gas_name)
+
+    def _go_back_to_gas_choice(self, event):
+        """Closes this window and tells the controller to show the gas selector."""
+        print("\nNavigating back to gas selection...")
+        plt.close(self.fig)
+        self.app_controller.launch_gas_selector()
+
+    def show(self):
+        """Displays the plot."""
+        plt.show()
 
     def _on_row_change(self, label):
         """Handles row selection changes."""

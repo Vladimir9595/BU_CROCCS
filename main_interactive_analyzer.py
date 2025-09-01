@@ -13,8 +13,11 @@ from src.logger import LOGGER
 
 matplotlib.use('TkAgg')
 
-class AppLauncher:
-    """A multi-stage GUI to select a gas and then a dataset."""
+class AppController:
+    """
+    Manages the application flow, switching between the Gas selector,
+    Dataset selector, and the main Analyzer window.
+    """
     def __init__(self, experiments_config):
         self.experiments = experiments_config
         self.fig = None
@@ -23,26 +26,28 @@ class AppLauncher:
 
     def _create_button_window(self, title, labels_and_callbacks):
         """Generic function to create a window with a list of buttons."""
-        plt.close('all') # Close any existing windows
-        self.fig, self.ax = plt.subplots(figsize=(5, len(labels_and_callbacks) * 0.8 + 1))
+        plt.close('all')
+        self.fig, self.ax = plt.subplots(figsize=(5, max(3, len(labels_and_callbacks) * 0.8)))
         self.fig.canvas.manager.set_window_title("Experiment Selector")
-        self.ax.set_title(title)
+        self.ax.set_title(title, fontsize=16)
         self.ax.axis('off')
 
-        button_height, spacing, num_buttons = 0.15, 0.05, len(labels_and_callbacks)
+        button_height = 0.12
+        spacing = 0.05
+        num_buttons = len(labels_and_callbacks)
         total_height = num_buttons * button_height + (num_buttons - 1) * spacing
         start_y = (1 - total_height) / 2
 
-        self.buttons.clear() # Clear previous buttons
+        self.buttons.clear()
         for i, (label, callback) in enumerate(labels_and_callbacks):
             y_pos = start_y + (num_buttons - 1 - i) * (button_height + spacing)
-            ax_button = self.fig.add_axes([0.15, y_pos, 0.7, button_height])
+            ax_button = self.fig.add_axes((0.15, y_pos, 0.7, button_height))
             button = Button(ax_button, label)
             button.on_clicked(callback)
             self.buttons.append(button)
         self.fig.show()
 
-    def launch_gas_selector(self):
+    def launch_gas_selector(self, event=None):
         """Creates the initial window for selecting a gas."""
         labels_and_callbacks = [
             (config['name'], lambda event, k=key: self.launch_dataset_selector(k))
@@ -76,18 +81,16 @@ class AppLauncher:
         try:
             sensor_data = SensorData(
                 data_dir=dataset_config['data_dir'],
-                exposure_intervals=dataset_config['intervals']
-            )
-
+                exposure_intervals=dataset_config['intervals'])
             analyzer = InteractiveDraggableAnalyzer(
                 time_vector=sensor_data.time_vector,
                 all_sensor_data_rows=sensor_data.summary_data,
                 dataset_config=dataset_config,
-                gas_name=gas_key, # Pass the gas key (e.g., 'ammonia')
+                gas_name=gas_key,
+                app_controller=self,
                 signal_name='Summary Luminance'
             )
             analyzer.show()
-
         except (IOError, ValueError) as e:
             print(f"\nAn error occurred while loading this dataset: {e}")
 
@@ -96,9 +99,9 @@ def main():
     LOGGER.start()
     try:
         print("--- Application Started ---")
-        launcher = AppLauncher(EXPERIMENTS)
-        launcher.launch_gas_selector()
-        plt.show() # This keeps the first window open
+        controller = AppController(EXPERIMENTS)
+        controller.launch_gas_selector()
+        plt.show()
     finally:
         print("\n--- Analysis complete. Closing application. ---")
         LOGGER.stop()
