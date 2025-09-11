@@ -1,0 +1,119 @@
+# BU-CROCCS_VOC_Smart_Clothes_Project
+
+VOC smart clothing project, for automatic recognition of the presence of harmful gases and detection of the percentage concentration of gases in the air.
+
+# Installation of dependencies
+
+## Prerequisites
+
+- Python 3.8 or higher (the project is tested with Python 3.11)
+- Pip
+- Pandas
+- NumPy
+- Scipy
+- OpenCV
+- PyLint
+- PyTorch
+- Matplotlib
+- Scikit-learn
+- Seaborn
+- Joblib
+
+## Installation steps
+
+1. **Clone the repository** :
+
+   ```bash
+   git clone https://github.com/Vladimir9595/BU_CROCCS.git
+
+   cd BU_CROCCS
+   ```
+
+2. **Create a virtual environment (.venv)** :
+
+   To create a virtual environment, find the exact path to the `python.exe` executable for version 3.11 (for example, it could be `C:\Users\[Name]\AppData\Local\Programs\Python\Python311\python.exe`).
+   If the Python version is 3.11, you can use the following command to create a virtual environment:
+
+   **Windows** :
+
+   ```bash
+   python -m venv .venv
+   ```
+
+   **Linux/MacOS** :
+
+   ```bash
+   python3 -m venv .venv
+   ```
+
+3. **Activate the virtual environment** :
+
+   **Windows** :
+
+   ```bash
+   .venv\Scripts\activate
+   ```
+
+   **Linux/MacOS** :
+
+   ```bash
+   source .venv/bin/activate
+   ```
+
+4. **Install the required packages** :
+
+   ```bash
+   pip install -r "requirements.txt"
+   ```
+
+# Extract and prepare the dataset
+
+The data is stored in the `gas/` folder and contains the five gases with which the smart clothes are tested:
+- Ammonia (NH3)
+- Cadaverine (C5H10N2)
+- Methylamine (CH3NH2)
+- Putrescine (C4H12N2)
+- Trimethylamine (C3H9N)
+
+To extract the data and prepare the dataset, follow these steps:
+
+1. **Run the main interactive analyzer** :
+
+Run the `main_interactive_analyzer.py` script to extract the data from the `gas/` folder and save it in a more convenient format (CSV files).
+
+```bash
+python main_interactive_analyzer.py
+```
+
+The main interactive analyzer asks the user to choose the gas to be analyzed and the type of concentration.
+The user can also choose to visualize the data using graphs.
+
+2. **Run the main data preparer** :
+
+Once the gas and concentration type have been selected, a plot will be generated to visualize the data.
+Here the user can drag a line to select the threshold value for the data.
+
+3. **Save the prepared data** :
+
+After selecting the threshold, the user can save the prepared data to a CSV file using the button "Extract Cycles in Window".
+Here the data which is contained in the bars concentration will be saved in the `extracted_data/` folder and separate between the different gases and concentration types.
+Then multiple CSV files will be created, one for each cycle extracted from the data.
+
+# Train the machine learning models
+
+To train the machine learning models, follow these steps:
+
+1. **Run the main trainer** :
+
+Run the `train_model.py` script to train the machine learning models using the prepared dataset for a specific gas.
+
+```bash
+python train_model.py [GAS_NAME]
+```
+Replace `[GAS_NAME]` with the name of the gas you want to train the model for (e.g., `ammonia`, `cadaverine`, `methylamine`, `putrescine`, `trimethylamine`).
+
+The script will load the prepared dataset from the `extracted_data/` folder, preprocess the data, and train multiple machine learning models (Random Forest, SVM and a simple Neural Network) to classify the concentration levels of the selected gas.
+
+2. **Evaluate the models** :
+
+After training, the script will evaluate the performance of each model using accuracy, precision, recall, and F1-score metrics. The results will be printed to the console.
