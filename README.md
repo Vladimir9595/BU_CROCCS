@@ -103,17 +103,25 @@ Then multiple CSV files will be created, one for each cycle extracted from the d
 
 To train the machine learning models, follow these steps:
 
-1. **Run the main trainer** :
+1. **Run the Classic Models (SVM and Random Forest)** :
 
 Run the `train_model.py` script to train the machine learning models using the prepared dataset for a specific gas.
 
 ```bash
-python train_model.py [GAS_NAME]
+python train_model.py [GAS_NAME] --use-statistical-features
 ```
 Replace `[GAS_NAME]` with the name of the gas you want to train the model for (e.g., `ammonia`, `cadaverine`, `methylamine`, `putrescine`, `trimethylamine`).
-
-The script will load the prepared dataset from the `extracted_data/` folder, preprocess the data, and train multiple machine learning models (Random Forest, SVM and a simple Neural Network) to classify the concentration levels of the selected gas.
-
-2. **Evaluate the models** :
-
+The script will load the prepared dataset from the `extracted_data/` folder, preprocess the data, and train multiple machine learning models (Random Forest and SVM) to classify the concentration levels of the selected gas.
 After training, the script will evaluate the performance of each model using accuracy, precision, recall, and F1-score metrics. The results will be printed to the console.
+
+2. **Run the Deep Learning (CNN) Model** :
+
+A more powerful approach. It will automatically use the raw resampled signal, which is ideal for a CNN.
+
+```bash
+python train_model.py [GAS_NAME] --model-type cnn
+```
+
+The data will be loaded and resampled as before.
+For each of the 5 cross-validation folds, we will see a live progress bar for the training epochs, showing the loss decreasing as the model learns.
+After all folds are complete, it will print the final overall classification report and display the confusion matrix for the CNN model.
