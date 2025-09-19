@@ -5,6 +5,7 @@ pandas
 scikit-learn
 joblib
 pylint
+tqdm
 seaborn
 torch
 torchvision
