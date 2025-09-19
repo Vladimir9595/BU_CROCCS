@@ -63,7 +63,7 @@ VOC smart clothing project, for automatic recognition of the presence of harmful
 4. **Install the required packages** :
 
    ```bash
-   pip install -r "requirements.txt"
+   pip install -r requirements
    ```
 
 # Extract and prepare the dataset
