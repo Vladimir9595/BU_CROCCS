@@ -119,7 +119,7 @@ After training, the script will evaluate the performance of each model using acc
 A more powerful approach. It will automatically use the raw resampled signal, which is ideal for a CNN.
 
 ```bash
-python train_model.py [GAS_NAME] --model-type cnn
+python train_model.py [GAS_NAME] --model-type cnn --use-full-array
 ```
 
 The data will be loaded and resampled as before.
